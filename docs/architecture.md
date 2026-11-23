@@ -107,6 +107,20 @@ flowchart LR
 
 ## Жизненный цикл
 
+Вход в приложение — **чистый AppKit**, без SwiftUI `App`/Scene: `@main enum Main`
+создаёт `NSApplication.shared`, назначает `AppDelegate`, явно вызывает
+`bootstrap()` и запускает `app.run()`. Это важно по двум причинам:
+
+1. После замены `MenuBarExtra` на `NSStatusItem` единственной Scene оставалась
+   `SwiftUI.Settings`, и SwiftUI **сам открывал окно настроек при первом запуске**.
+   Все views здесь хостятся вручную (`NSPopover`, `NSHostingController`), поэтому
+   Scene не нужна вовсе.
+2. При `@main` на самом `NSApplicationDelegate` метод `applicationDidFinishLaunching`
+   не приходит надёжно, поэтому инициализация вынесена в явный `bootstrap()`.
+
+Без переменной `OPENCODE_SHOW_SETTINGS_ON_LAUNCH` приложение стартует **без единого
+окна** — только иконка в строке меню.
+
 `AppDelegate` создаёт **один** `AppState` на всё время работы приложения и
 передаёт его во views и `StatusBarController`. В `AppState` работают три таймера:
 
@@ -142,7 +156,7 @@ flowchart LR
 | `Sources/OpenCodeLimitsCore/Services/PowerMonitor.swift` | LPM + `pmset -g batt`, кэш 60 с |
 | `Sources/OpenCodeLimits/App/{AppState,Settings,Notifier,StatusBarController}.swift` | Состояние, настройки, уведомления, иконка |
 | `Sources/OpenCodeLimits/Views/{MenuBarView,UsageMeterView,ActivityView,SettingsView,TrayIcon}.swift` | UI |
-| `Sources/OpenCodeLimits/OpenCodeLimitsApp.swift` | Точка входа (`@main OpenCodeLimitsApp`, `AppDelegate`). Файл **не** называется `main.swift`: SwiftPM трактует такое имя как модуль с top-level code и запрещает в нём `@main` |
+| `Sources/OpenCodeLimits/OpenCodeLimitsApp.swift` | Точка входа: `@main enum Main` (чистый AppKit: `NSApplication.shared.run()`), `AppDelegate.bootstrap()` и сильное удержание delegate. Файл **не** называется `main.swift`: SwiftPM трактует такое имя как модуль с top-level code и запрещает в нём `@main` |
 | `Tests/OpenCodeLimitsTests/{UsageDecodingTests,ActivityAggregationTests,LocalAPITests,PowerTests}.swift` | Раннер проверок |
 
 См. также: [Источники данных](data-sources.md), [Конфигурация](configuration.md),

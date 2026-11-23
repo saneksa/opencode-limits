@@ -1,17 +1,20 @@
-import SwiftUI
 import AppKit
+import Foundation
 import OpenCodeLimitsCore
 
-/// Creates the single shared AppState, owns the status item and pauses work
-/// while the Mac sleeps. The accessory policy keeps the app out of the Dock
-/// even when launched from SwiftPM during development.
+/// Owns the single shared AppState, the status item and the sleep/wake hooks.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let state = AppState()
 
     private var workspaceObservers: [NSObjectProtocol] = []
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    /// Explicit bootstrap. SwiftUI's `App` lifecycle is intentionally not used:
+    /// with `MenuBarExtra` replaced by an AppKit `NSStatusItem`, a lone
+    /// `SwiftUI.Settings` scene is opened automatically on first launch. Also,
+    /// `applicationDidFinishLaunching` is not delivered reliably with a pure
+    /// AppKit `@main` delegate, so `Main.main()` calls this directly instead.
+    func bootstrap() {
         NSApplication.shared.setActivationPolicy(.accessory)
         StatusBarController.shared.start(state: state)
 
@@ -27,8 +30,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         )
 
+        // Debug hook: opens settings without a click. Never fires without the
+        // env var, so the app normally starts with NO visible window.
         if ProcessInfo.processInfo.environment["OPENCODE_SHOW_SETTINGS_ON_LAUNCH"] == "1" {
-            SettingsWindowController.shared.show(state: state)
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                SettingsWindowController.shared.show(state: self.state)
+            }
         }
     }
 
@@ -37,16 +45,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-@main
-struct OpenCodeLimitsApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+/// Retains the delegate: `NSApplication.delegate` is weak, and `app.run()`
+/// never returns, so a local constant in `main()` would otherwise be the only
+/// strong reference (which is sufficient, but keeping it explicit is safer).
+@MainActor private var retainedDelegate: AppDelegate?
 
-    var body: some Scene {
-        // Qualified because the app defines its own `Settings` class.
-        SwiftUI.Settings {
-            SettingsView()
-                .environmentObject(appDelegate.state)
-                .environmentObject(appDelegate.state.settings)
-        }
+@main
+enum Main {
+    @MainActor
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.delegate = delegate
+        retainedDelegate = delegate
+        delegate.bootstrap()
+        app.run()
     }
 }

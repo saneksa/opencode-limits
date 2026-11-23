@@ -195,6 +195,11 @@ make clean    # swift package clean
 - Файл точки входа называется `OpenCodeLimitsApp.swift`, **не** `main.swift`: SwiftPM
   считает `main.swift` модулем с top-level code и запрещает в нём `@main`
   (ошибка проявляется на чистой сборке, например в GitHub Actions).
+- Приложение стартует через **чистый AppKit** (`@main enum Main` →
+  `NSApplication.shared.run()` → явный `AppDelegate.bootstrap()`), без SwiftUI
+  `App`/Scene. Иначе единственная `SwiftUI.Settings` сцена сама открывала окно
+  настроек при первом запуске. Все окна создаются вручную; при обычном старте
+  окон нет вообще.
 
 ## Безопасность и приватность
 

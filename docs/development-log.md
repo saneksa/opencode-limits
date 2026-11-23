@@ -159,6 +159,31 @@ macOS засыпает по отсутствию пользовательско�
 стало **178** (`make test`) — удалена одна проверка исчезнувшего ключа;
 `make smoke` — 182 на момент фиксации.
 
+### Раунд 13 — окно настроек открывалось при первом запуске
+
+**Симптом:** первое включение приложения показывало окно настроек 900×588 без
+всякого клика. Воспроизведено на чистом процессе: у PID появлялось одно окно.
+
+**Причина:** после замены `MenuBarExtra` на AppKit `NSStatusItem` в SwiftUI `App`
+осталась **единственная** Scene — `SwiftUI.Settings`. SwiftUI открывает такую
+сцену автоматически при первом запуске/активации. Отладочная переменная
+`OPENCODE_SHOW_SETTINGS_ON_LAUNCH` в окружении задана не была.
+
+**Ложное решение, которое пришлось откатить:** перенос `@main` прямо на
+`NSApplicationDelegate`. Окно действительно перестало открываться, но проверка
+маркером показала, что `applicationDidFinishLaunching` **не вызывается** —
+приложение висело без статус-иконки и таймеров.
+
+**Итоговое решение:** `OpenCodeLimitsApp.swift` теперь содержит `@main enum Main`
+(`NSApplication.shared`, сильное удержание delegate, явный `bootstrap()`,
+`app.run()`), `AppDelegate.bootstrap()` инициализирует всё напрямую. SwiftUI
+`App`/Scene удалены; views по-прежнему хостятся в `NSPopover` и `NSWindow`.
+
+- [x] Без env: `bootstrap` выполнен, процесс жив, **0 окон**
+- [x] С `OPENCODE_SHOW_SETTINGS_ON_LAUNCH=1`: ровно одно окно 480×668
+- [x] `swift build -c release`, `make test` — 178 passed, `make app` — подпись валидна
+- [x] `docs/architecture.md`, `docs/ui.md`, корневой `README.md`, `docs/README.md` обновлены
+
 ## 8. Текущее состояние
 
 - Репозиторий: `https://github.com/saneksa/opencode-limits.git`, ветка `main`.

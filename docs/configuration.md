@@ -37,7 +37,7 @@
 | `OPENCODE_GO_KEY` | Ключ Go API как источник `environment`; читается только из окружения процесса |
 | `OPENCODE_LIVE_SMOKE` | `=1` включает живой запрос в раннере проверок (`make smoke`) |
 | `OPENCODE_SERVICE_CONFIG` | Переопределяет путь к `~/.config/opencode/service.json` (пароль локального V2 API) |
-| `OPENCODE_SHOW_SETTINGS_ON_LAUNCH` | `=1` открывает окно настроек сразу после запуска (отладка) |
+| `OPENCODE_SHOW_SETTINGS_ON_LAUNCH` | `=1` открывает окно настроек сразу после запуска (отладка). Без неё окон нет — приложение использует чистый AppKit-вход без SwiftUI Scene |
 
 `HTTPS_PROXY` используется `ProxyProvider` как запасной источник настроек
 прокси (см. ниже); в списке кнопок приложения его нет.
