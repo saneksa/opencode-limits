@@ -1,6 +1,6 @@
 # Устранение неполадок
 
-См. также: [Сборка и тесты](build-and-test.md), [Пользовательский интерфейс](ui.md), [Источники данных](data-sources.md), [Настройки](configuration.md), [Безопасность](security.md), [Архитектура](architecture.md), [README](../README.md), [План](../PLAN.md).
+См. также: [Сборка и тесты](build-and-test.md), [Пользовательский интерфейс](ui.md), [Источники данных](data-sources.md), [Настройки](configuration.md), [Безопасность](security.md), [Архитектура](architecture.md), [README](../README.md), [Журнал разработки](development-log.md).
 
 ## Симптом → причина → действие
 

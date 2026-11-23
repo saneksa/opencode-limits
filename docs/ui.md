@@ -2,7 +2,7 @@
 
 Приложение работает как меню-барное: в `Info.plist` задано `LSUIElement = true`, поэтому значка в Dock нет. Дополнительно `AppDelegate` устанавливает политику активации `.accessory`. Единственный постоянный элемент интерфейса — иконка в строке меню, создаваемая вручную через `NSStatusItem` (не через SwiftUI `MenuBarExtra`), чтобы надёжно различать левый и правый клик.
 
-См. также: [Архитектура](architecture.md), [Источники данных](data-sources.md), [Настройки](configuration.md), [Сборка и тесты](build-and-test.md), [Безопасность](security.md), [README](../README.md), [План](../PLAN.md).
+См. также: [Архитектура](architecture.md), [Источники данных](data-sources.md), [Настройки](configuration.md), [Сборка и тесты](build-and-test.md), [Безопасность](security.md), [README](../README.md), [Журнал разработки](development-log.md).
 
 ## Иконка в строке меню
 

@@ -1,6 +1,6 @@
 # Сборка и тестирование
 
-См. также: [README](../README.md), [План](../PLAN.md), [Архитектура](architecture.md), [Источники данных](data-sources.md), [Настройки](configuration.md), [Пользовательский интерфейс](ui.md), [Безопасность](security.md), [Устранение неполадок](troubleshooting.md).
+См. также: [README](../README.md), [Журнал разработки](development-log.md), [Архитектура](architecture.md), [Источники данных](data-sources.md), [Настройки](configuration.md), [Пользовательский интерфейс](ui.md), [Безопасность](security.md), [Устранение неполадок](troubleshooting.md).
 
 ## Требования
 
