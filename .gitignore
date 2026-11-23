@@ -1,0 +1,38 @@
+# SwiftPM
+.build/
+.swiftpm/
+build/
+
+# Xcode / DerivedData
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+
+# Compiled products
+*.app/
+*.dSYM/
+*.o
+*.swiftmodule
+*.swiftdoc
+
+# macOS metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Logs and local overrides (may contain secrets)
+*.log
+.env
+.env.*
+*.local
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*~

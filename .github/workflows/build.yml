@@ -1,0 +1,91 @@
+name: Build macOS app
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Superseded runs for the same ref are cancelled to save macOS runner minutes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# NOTARIZATION (NOT IMPLEMENTED)
+# `make app` applies an ad-hoc signature (`codesign --force --sign -`). That is
+# enough for local builds, but Gatekeeper will block the app for other users.
+# Distribution requires a Developer ID Application certificate and notarization
+# with the secrets MACOS_CERTIFICATE, MACOS_CERTIFICATE_PASSWORD, APPLE_ID,
+# APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID. They are intentionally unused.
+
+jobs:
+  build:
+    # A macOS runner is mandatory: SwiftUI/AppKit, the macOS SDK and codesign
+    # are unavailable on Linux, and this app depends on system frameworks only.
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print toolchain
+        shell: bash
+        run: |
+          swift --version
+          xcrun --show-sdk-path
+
+      # Dependency-free executable test runner. Do NOT use `swift test`: XCTest
+      # is absent on some CommandLineTools installs. Do NOT run `make smoke`:
+      # it needs a real Go API key and a running local OpenCode Desktop V2
+      # service, and would contact opencode.ai.
+      - name: Run tests
+        run: make test
+
+      - name: Build .app bundle
+        run: make app
+
+      - name: Verify bundle
+        shell: bash
+        run: |
+          plutil -lint build/OpenCodeLimits.app/Contents/Info.plist
+          codesign -v --verbose=2 build/OpenCodeLimits.app
+
+      - name: Package ZIP
+        shell: bash
+        run: ditto -c -k --sequesterRsrc --keepParent build/OpenCodeLimits.app build/OpenCodeLimits.zip
+
+      - name: Upload app archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenCodeLimits-macos-${{ github.sha }}
+          path: build/OpenCodeLimits.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: macos-latest
+    permissions:
+      contents: write
+
+    steps:
+      # Explicit path + merge-multiple puts the ZIP directly at
+      # build/OpenCodeLimits.zip (v4 otherwise nests it under the artifact name).
+      - name: Download app archive
+        uses: actions/download-artifact@v4
+        with:
+          name: OpenCodeLimits-macos-${{ github.sha }}
+          path: build
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "$GITHUB_REF_NAME" build/OpenCodeLimits.zip --generate-notes --title "$GITHUB_REF_NAME"
