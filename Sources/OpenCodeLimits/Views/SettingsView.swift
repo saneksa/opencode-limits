@@ -44,13 +44,15 @@ final class SettingsWindowController {
     }
 }
 
-/// Transient view-local state. An ObservableObject box is used instead of
-/// `@State` because the latter requires a compiler macro plugin that is absent
+/// Transient view-local state. An ObservableObject box is used instead of the
+/// SwiftUI State property wrapper because its compiler macro plugin is absent
 /// from some CommandLineTools SDK installations.
 final class SettingsLocalState: ObservableObject {
     @Published var manualKey = ""
     @Published var connectionMessage: String?
     @Published var isTesting = false
+    /// Visual tab selection only; not persisted as a settings key.
+    @Published var tab = 0
 }
 
 /// Preferences window. Never prints or logs the API key.
@@ -72,133 +74,161 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 16) {
-                sectionHeader("Обновление")
-
-                settingRow("Интервал опроса") {
-                    Picker("", selection: $settings.pollInterval) {
-                        Text("30 сек").tag(30.0)
-                        Text("1 мин").tag(60.0)
-                        Text("5 мин").tag(300.0)
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                settingRow("В строке меню") {
-                    Picker("", selection: $settings.trayMeterRaw) {
-                        ForEach(TrayMeter.allCases) { item in
-                            Text(item.title).tag(item.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                fullWidthCaption("Влияет только на иконку в строке меню. В окне и в уведомлениях всегда видны все три лимита.")
-                fullWidthCaption("Кольцо показывает время до сброса 5-часового окна, цифра — выбранный лимит.")
-
-                settingRow("Предупреждать при \(settings.warnThreshold)%") {
-                    Stepper("", value: $settings.warnThreshold, in: 0...100, step: 5)
-                        .labelsHidden()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                sectionHeader("Энергосбережение")
-
-                settingRow("Уменьшать опрос от батареи") {
-                    Toggle("", isOn: $settings.powerSavingEnabled)
-                        .labelsHidden()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                settingRow("Интервал от батареи") {
-                    Picker("", selection: $settings.batteryPollInterval) {
-                        Text("1 мин").tag(60.0)
-                        Text("5 мин").tag(300.0)
-                        Text("15 мин").tag(900.0)
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                fullWidthCaption(powerCaption)
-                fullWidthCaption("Low Power Mode и работа от батареи также реже обновляют кольцо и историю активности. Во сне таймеры приложения приостанавливаются.")
-
-                sectionHeader("Ключ доступа Go")
-
-                settingRow("Источник") {
-                    Picker("", selection: $settings.keySourceRaw) {
-                        ForEach(KeySource.allCases) { source in
-                            Text(source.rawValue).tag(source.rawValue)
-                        }
-                    }
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                fullWidthCaption("Активный источник: \(state.credentialStore.activeSourceDescription)")
-
-                settingRow("Новый ключ") {
-                    SecureField("", text: $local.manualKey)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-
-                fullWidthRow {
-                    HStack(spacing: 12) {
-                        Button("Сохранить в Keychain") {
-                            saveKey()
-                        }
-                        .disabled(local.manualKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                        Button("Удалить") {
-                            state.credentialStore.clearManualKey()
-                            local.manualKey = ""
-                            local.connectionMessage = "Сохранённый ключ удалён."
-                        }
-                    }
-                }
-
-                sectionHeader("Соединение")
-
-                fullWidthRow {
-                    Button("Проверить соединение") {
-                        testConnection()
-                    }
-                    .disabled(local.isTesting)
-                }
-                if let message = local.connectionMessage {
-                    fullWidthCaption(message)
-                }
-
-                sectionHeader("Запуск")
-
-                settingRow("Запускать при входе в систему") {
-                    Toggle("", isOn: $settings.launchAtLogin)
-                        .labelsHidden()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                if let error = settings.launchAtLoginError {
-                    fullWidthCaption(error, color: .orange)
-                }
-
-                sectionHeader("Конфиденциальность")
-
-                fullWidthCaption("ключ не логируется, БД только для чтения, содержимое переписки не читается")
+        VStack(spacing: 0) {
+            Picker("", selection: $local.tab) {
+                Text("Общие").tag(0)
+                Text("Подключение").tag(1)
+                Text("Энергосбережение").tag(2)
             }
-            .padding(20)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .labelsHidden()
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+
+            Divider()
+
+            ScrollView(.vertical) {
+                VStack(alignment: .leading, spacing: 16) {
+                    if local.tab == 0 {
+                        generalTab
+                    } else if local.tab == 1 {
+                        connectionTab
+                    } else {
+                        energyTab
+                    }
+                }
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Divider()
+
+            // Persistent privacy footer, outside the scroll view.
+            Text("Ключ не логируется · БД только для чтения · содержимое переписки не читается")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Layout helpers
+    // MARK: - Tabs
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.headline)
+    @ViewBuilder
+    private var generalTab: some View {
+        settingRow("Интервал опроса") {
+            Picker("", selection: $settings.pollInterval) {
+                Text("30 сек").tag(30.0)
+                Text("1 мин").tag(60.0)
+                Text("5 мин").tag(300.0)
+            }
+            .labelsHidden()
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        settingRow("В строке меню") {
+            Picker("", selection: $settings.trayMeterRaw) {
+                ForEach(TrayMeter.allCases) { item in
+                    Text(item.title).tag(item.rawValue)
+                }
+            }
+            .labelsHidden()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        fullWidthCaption("Кольцо показывает время до сброса 5-часового окна, цифра — выбранный лимит. В окне и в уведомлениях всегда видны все три лимита.")
+
+        settingRow("Предупреждать при \(settings.warnThreshold)%") {
+            Stepper("", value: $settings.warnThreshold, in: 0...100, step: 5)
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        Divider()
+
+        settingRow("Запускать при входе в систему") {
+            Toggle("", isOn: $settings.launchAtLogin)
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        if let error = settings.launchAtLoginError {
+            fullWidthCaption(error, color: .orange)
+        }
     }
+
+    @ViewBuilder
+    private var connectionTab: some View {
+        settingRow("Источник") {
+            Picker("", selection: $settings.keySourceRaw) {
+                ForEach(KeySource.allCases) { source in
+                    Text(source.rawValue).tag(source.rawValue)
+                }
+            }
+            .labelsHidden()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        fullWidthCaption("Активный источник: \(state.credentialStore.activeSourceDescription)")
+
+        settingRow("Новый ключ") {
+            SecureField("", text: $local.manualKey)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        fullWidthRow {
+            HStack(spacing: 12) {
+                Button("Сохранить в Keychain") {
+                    saveKey()
+                }
+                .disabled(local.manualKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Удалить") {
+                    state.credentialStore.clearManualKey()
+                    local.manualKey = ""
+                    local.connectionMessage = "Сохранённый ключ удалён."
+                }
+            }
+        }
+
+        Divider()
+
+        fullWidthRow {
+            Button("Проверить соединение") {
+                testConnection()
+            }
+            .disabled(local.isTesting)
+        }
+        if let message = local.connectionMessage {
+            fullWidthCaption(message)
+        }
+    }
+
+    @ViewBuilder
+    private var energyTab: some View {
+        settingRow("Уменьшать опрос от батареи") {
+            Toggle("", isOn: $settings.powerSavingEnabled)
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        settingRow("Интервал от батареи") {
+            Picker("", selection: $settings.batteryPollInterval) {
+                Text("1 мин").tag(60.0)
+                Text("5 мин").tag(300.0)
+                Text("15 мин").tag(900.0)
+            }
+            .labelsHidden()
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        fullWidthCaption(powerCaption)
+        fullWidthCaption("В Low Power Mode и при работе от батареи приложение реже опрашивает API, перерисовывает иконку и загружает активность. Во сне таймеры приостанавливаются.")
+    }
+
+    // MARK: - Layout helpers
 
     private func settingRow<Content: View>(
         _ label: String,
