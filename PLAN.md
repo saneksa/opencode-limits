@@ -61,7 +61,7 @@ Sources/OpenCodeLimitsCore/
   Services/GoUsageService.swift   URLSession → /inference/go/v1/usage
   Services/ActivityService.swift  session_message + session_v2 + project → агрегаты
 Sources/OpenCodeLimits/
-  main.swift / App/              @main App, AppState, Settings, Notifier
+  OpenCodeLimitsApp.swift / App/  @main App, AppState, Settings, Notifier
   Views/                         MenuBar, UsageMeter, Activity (Swift Charts), Settings, TrayIcon
 Tests/OpenCodeLimitsTests/       парсинг JSON, маппинг 401/403, агрегация
 Makefile / Info.plist / README.md
@@ -348,6 +348,19 @@ macOS засыпает по отсутствию пользовательско�
       ключей в бинарнике нет
 - [x] YAML валиден (`ruby YAML.load_file` → OK); `git status` показывает `.github/`
 - [ ] Первый пуш ещё не сделан → workflow заработает после `git push -u origin main`
+
+### Раунд 11 — hotfix первого прогона CI
+
+**Ошибка:** `Sources/OpenCodeLimits/main.swift:40: error: 'main' attribute cannot be used in a module that contains top-level code`.
+Локально не проявлялась из-за инкрементального кэша `.build/`; на чистом checkout
+GitHub Actions (`macos-latest`) компилятор закономерно отказал.
+
+- [x] `main.swift` → **`OpenCodeLimitsApp.swift`** (имя файла — причина, содержимое не менялось)
+- [x] Обновлены `docs/architecture.md`, корневой `README.md`, `PLAN.md`
+- [x] **Чистая сборка** (`swift package clean` → `swift build -c release`) — Build complete,
+      `make test` — 179 passed, `make app` — `plutil OK` / `codesign valid`
+- [x] В workflow добавлена проверка? Нет — на CI всегда чистый checkout, переименования достаточно
+- [ ] Повторный прогон Actions после пуша фикса
 
 ### Привязка репозитория
 

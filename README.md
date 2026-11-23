@@ -178,6 +178,9 @@ make clean    # swift package clean
   и `@Environment(\.openSettings)`; состояние на `@StateObject` / `ObservableObject`,
   окно настроек через `NSHostingController`.
 - Заголовок `sqlite3.h` лежит только в SDK → системный модуль `CSQLite3` через shim.
+- Файл точки входа называется `OpenCodeLimitsApp.swift`, **не** `main.swift`: SwiftPM
+  считает `main.swift` модулем с top-level code и запрещает в нём `@main`
+  (ошибка проявляется на чистой сборке, например в GitHub Actions).
 
 ## Безопасность и приватность
 

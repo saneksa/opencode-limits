@@ -141,7 +141,7 @@ flowchart LR
 | `Sources/OpenCodeLimitsCore/Services/PowerMonitor.swift` | LPM + `pmset -g batt`, кэш 60 с |
 | `Sources/OpenCodeLimits/App/{AppState,Settings,Notifier,StatusBarController}.swift` | Состояние, настройки, уведомления, иконка |
 | `Sources/OpenCodeLimits/Views/{MenuBarView,UsageMeterView,ActivityView,SettingsView,TrayIcon}.swift` | UI |
-| `Sources/OpenCodeLimits/main.swift` | Точка входа (`AppDelegate`) |
+| `Sources/OpenCodeLimits/OpenCodeLimitsApp.swift` | Точка входа (`@main OpenCodeLimitsApp`, `AppDelegate`). Файл **не** называется `main.swift`: SwiftPM трактует такое имя как модуль с top-level code и запрещает в нём `@main` |
 | `Tests/OpenCodeLimitsTests/{UsageDecodingTests,ActivityAggregationTests,LocalAPITests,PowerTests}.swift` | Раннер проверок |
 
 См. также: [Источники данных](data-sources.md), [Конфигурация](configuration.md),
