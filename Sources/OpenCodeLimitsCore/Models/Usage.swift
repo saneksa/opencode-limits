@@ -264,7 +264,6 @@ public enum KeySource: String, CaseIterable, Identifiable, Sendable {
 public enum AppDefaultsKey {
     public static let powerSaving = "powerSaving"
     public static let batteryPollInterval = "batteryPollInterval"
-    public static let trayCountdown = "trayCountdown"
     public static let trayMeter = "trayMeter"
     public static let activityPeriod = "activityPeriod"
     public static let pollInterval = "pollInterval"

@@ -61,7 +61,7 @@ User-Agent: opencode-limits-monitor/0.1
 | `monthly` | 100 % | В начале оплаченного периода |
 
 `UsageMeter.rollingWindowFraction(now:)` возвращает
-`clamp((resetsAt - now) / 5h, 0...1)` — внутреннее кольцо иконки: 1 = полные 5 часов
+`clamp((resetsAt - now) / 5h, 0...1)` — кольцо иконки в трее: 1 = полные 5 часов
 впереди, 0 = сброс сейчас. Без `resetsAt` результат `nil`.
 
 Ошибки:

@@ -1,20 +1,19 @@
 import AppKit
 import OpenCodeLimitsCore
 
-/// Draws the menu-bar status item in code: an outer progress ring for the
-/// selected meter and an optional inner countdown ring for the rolling window.
-/// Rendered at 2x for crispness on Retina.
+/// Draws the menu-bar status item in code: a single green ring showing the time
+/// left until the 5-hour rolling window resets, with the selected meter's
+/// percentage in the middle. Rendered at 2x for crispness on Retina.
 enum TrayIcon {
     /// Convenience overload used by code that only has a meter to display.
     static func image(for meter: UsageMeter?) -> NSImage {
-        image(for: meter, countdown: nil, now: Date(), showCountdown: false)
+        image(for: meter, countdown: nil, now: Date())
     }
 
     static func image(
         for meter: UsageMeter?,
         countdown: UsageMeter?,
-        now: Date,
-        showCountdown: Bool
+        now: Date
     ) -> NSImage {
         let pointSize: CGFloat = 22
         let scale: CGFloat = 2
@@ -22,25 +21,15 @@ enum TrayIcon {
         let size = NSSize(width: pointSize, height: pointSize)
 
         let percent: Int? = meter.map { min(max($0.percent, 0), 100) }
-        let ringColor: NSColor
-        if let meter, meter.isRateLimited {
-            ringColor = .systemRed
-        } else if let meter, meter.isCritical {
-            // Follows the configurable warnThreshold instead of a hardcoded 85.
-            ringColor = .systemRed
-        } else if let p = percent, p >= 60 {
-            ringColor = .systemOrange
-        } else if percent != nil {
-            ringColor = .systemGreen
-        } else {
-            ringColor = .systemGray
-        }
 
-        // The inner ring is driven by the rolling meter regardless of which
-        // meter was selected for the outer ring.
-        let innerFraction: CGFloat? = {
-            guard showCountdown, let countdown else { return nil }
-            guard let fraction = countdown.rollingWindowFraction(now: now) else { return nil }
+        // The ring is green for the reset countdown; a blocked selected meter
+        // turns it red so the user can still see the rate limit at a glance.
+        let ringColor: NSColor = (meter?.isRateLimited == true) ? .systemRed : .systemGreen
+
+        // One decreasing arc: 1 = full 5 hours left, 0 = reset is due now.
+        // The rolling meter drives it regardless of the selected meter.
+        let countdownFraction: CGFloat? = {
+            guard let countdown, let fraction = countdown.rollingWindowFraction(now: now) else { return nil }
             return CGFloat(min(max(fraction, 0), 1))
         }()
 
@@ -59,39 +48,26 @@ enum TrayIcon {
         context.scaleBy(x: scale, y: scale)
         let center = CGPoint(x: pointSize / 2, y: pointSize / 2)
 
-        // Outer ring: faint track plus selected-meter progress.
+        // Faint grey track is always visible, even without a known reset time.
         strokeArc(
             in: context, center: center, radius: 8.6, lineWidth: 2.2,
             color: NSColor.disabledControlTextColor.withAlphaComponent(0.30),
             fraction: 1
         )
-        strokeArc(
-            in: context, center: center, radius: 8.6, lineWidth: 2.2,
-            color: ringColor,
-            fraction: CGFloat(percent ?? 0) / 100
-        )
-
-        // Inner ring: decreasing remaining-time arc with its own grey track.
-        if let innerFraction {
+        if let fraction = countdownFraction {
             strokeArc(
-                in: context, center: center, radius: 6.0, lineWidth: 1.3,
-                color: NSColor.systemGray.withAlphaComponent(0.25),
-                fraction: 1
-            )
-            strokeArc(
-                in: context, center: center, radius: 6.0, lineWidth: 1.3,
-                color: NSColor.systemTeal.withAlphaComponent(0.9),
-                fraction: innerFraction
+                in: context, center: center, radius: 8.6, lineWidth: 2.2,
+                color: ringColor,
+                fraction: fraction
             )
         }
 
-        // Centered digits (or an en dash while loading), drawn last so neither
-        // ring overlaps the label. AppKit text drawing uses adaptive label color.
+        // Centred digits (or an en dash while loading), drawn on top of the ring.
+        // AppKit text drawing uses a fixed white fill for legibility on the
+        // green/red arc; the neutral state uses grey.
         let label = percent.map(String.init) ?? "–"
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
-        // "100" must fit inside the inner countdown ring's clear aperture,
-        // otherwise the digits would cover the teal arc.
         let fontSize: CGFloat
         switch label.count {
         case 1: fontSize = 8.0
@@ -102,7 +78,7 @@ enum TrayIcon {
         let font = NSFont.boldSystemFont(ofSize: fontSize)
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: NSColor.labelColor,
+            .foregroundColor: meter == nil ? NSColor.systemGray : NSColor.white,
         ]
         let text = NSAttributedString(string: label, attributes: attributes)
         let textSize = text.size()

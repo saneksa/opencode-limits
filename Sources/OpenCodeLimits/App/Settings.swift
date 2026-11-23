@@ -35,10 +35,6 @@ final class Settings: ObservableObject {
     @Published var trayMeterRaw: String {
         didSet { defaults.set(trayMeterRaw, forKey: AppDefaultsKey.trayMeter) }
     }
-    /// Draws the rolling countdown ring inside the menu-bar icon.
-    @Published var trayCountdown: Bool {
-        didSet { defaults.set(trayCountdown, forKey: AppDefaultsKey.trayCountdown) }
-    }
     /// Slow the poll/icon/activity cadence on battery or in Low Power Mode.
     @Published var powerSavingEnabled: Bool {
         didSet { defaults.set(powerSavingEnabled, forKey: AppDefaultsKey.powerSaving) }
@@ -95,8 +91,6 @@ final class Settings: ObservableObject {
         self.trayMeterRaw = TrayMeter.allCases.contains(where: { $0.rawValue == storedTrayMeter })
             ? storedTrayMeter
             : TrayMeter.rolling.rawValue
-
-        self.trayCountdown = (defaults.object(forKey: AppDefaultsKey.trayCountdown) as? Bool) ?? true
 
         self.powerSavingEnabled = (defaults.object(forKey: AppDefaultsKey.powerSaving) as? Bool) ?? true
         let storedBatteryInterval = defaults.object(forKey: AppDefaultsKey.batteryPollInterval) as? TimeInterval

@@ -15,11 +15,10 @@ final class AppState: ObservableObject {
     @Published var lastUpdated: Date?
     /// The meter currently drawn in the menu bar, selected by the user.
     @Published var trayMeter: UsageMeter?
-    /// Always the rolling meter, independent of `trayMeter`; drives the inner ring.
+    /// Always the rolling meter, independent of `trayMeter`; drives the reset arc.
     @Published var trayCountdownMeter: UsageMeter?
-    /// Ticks every 30 s so the countdown ring advances between network polls.
+    /// Ticks every 30 s so the reset arc advances between network polls.
     @Published var clock = Date()
-    @Published var showTrayCountdown: Bool
     @Published var powerState: PowerState = .unknown
     @Published var effectivePollInterval: TimeInterval = AppConfig.defaultPollInterval
 
@@ -47,7 +46,6 @@ final class AppState: ObservableObject {
     init(settings: Settings? = nil) {
         let resolvedSettings = settings ?? Settings()
         self.settings = resolvedSettings
-        self.showTrayCountdown = resolvedSettings.trayCountdown
         let initialPowerState = PowerMonitor.shared.current()
         self.powerState = initialPowerState
         self.effectivePollInterval = resolvedSettings.effectivePollInterval(for: initialPowerState)
@@ -110,14 +108,6 @@ final class AppState: ObservableObject {
             .sink { [weak self] _ in
                 // Icon-only change: never wait for (or trigger) a network poll.
                 Task { @MainActor [weak self] in self?.updateTrayMeter() }
-            }
-            .store(in: &cancellables)
-
-        resolvedSettings.$trayCountdown
-            .removeDuplicates()
-            .sink { [weak self] enabled in
-                // Icon-only change: no refresh, just redraw the inner ring.
-                Task { @MainActor [weak self] in self?.showTrayCountdown = enabled }
             }
             .store(in: &cancellables)
 
@@ -208,8 +198,8 @@ final class AppState: ObservableObject {
         }
     }
 
-    /// Re-selects the outer icon meter from the latest snapshot and setting,
-    /// and pins the inner countdown ring to the rolling meter.
+    /// Re-selects the icon meter from the latest snapshot and setting, and
+    /// keeps the rolling meter for the reset arc.
     private func updateTrayMeter() {
         guard let usage else {
             trayMeter = nil

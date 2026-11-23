@@ -52,19 +52,13 @@ final class StatusBarController: NSObject {
                 Task { @MainActor [weak self] in self?.updateIcon() }
             }
             .store(in: &cancellables)
-        state.$showTrayCountdown
-            .sink { [weak self] _ in
-                Task { @MainActor [weak self] in self?.updateIcon() }
-            }
-            .store(in: &cancellables)
     }
 
     private func iconImage(for state: AppState) -> NSImage {
         TrayIcon.image(
             for: state.trayMeter,
             countdown: state.trayCountdownMeter,
-            now: state.clock,
-            showCountdown: state.showTrayCountdown
+            now: state.clock
         )
     }
 

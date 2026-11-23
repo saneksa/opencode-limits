@@ -210,7 +210,6 @@ enum UsageDecodingTests {
             UsageMeter(status: .ok, percent: 8, resetsAt: resetsAt)
         }
         equal(AppConfig.rollingWindowDuration, 18_000, "rolling window duration is 5 hours")
-        equal(AppDefaultsKey.trayCountdown, "trayCountdown", "trayCountdown defaults key")
 
         near(meter(resetsAt: now.addingTimeInterval(5 * 3_600)).rollingWindowFraction(now: now),
              1, accuracy: 0.0001, "full 5 hours remaining gives fraction 1")

@@ -17,7 +17,8 @@
 | `make test` | `swift run -c release OpenCodeLimitsTests` | Локальный прогон тестов без сети и БД |
 | `make smoke` | `OPENCODE_LIVE_SMOKE=1 swift run -c release OpenCodeLimitsTests` | Тесты + живые проверки API и БД |
 | `make run` | `swift run OpenCodeLimits` | Запуск из исходников (без бандла) |
-| `make app` | сборка `build/OpenCodeLimits.app/Contents/{MacOS/OpenCodeLimits,Info.plist,PkgInfo}` + `codesign --force --sign -` | Сборка настоящего `.app` с ad-hoc подписью |
+| `make app` | сборка `Contents/{MacOS/OpenCodeLimits,Info.plist,PkgInfo,Resources/AppIcon.icns}` + `codesign --force --sign -` | Сборка настоящего `.app` с иконкой и ad-hoc подписью |
+| `make icon` | `swift scripts/generate-appicon.swift` | Пересборка `Resources/AppIcon.png` и `AppIcon.icns` (10 размеров через `sips` + `iconutil`) |
 | `make install` | `rm -rf /Applications/OpenCodeLimits.app && cp -R …` | Установка в `/Applications` |
 | `make clean` | `swift package clean` | Очистка артефактов SwiftPM |
 

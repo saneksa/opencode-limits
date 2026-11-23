@@ -73,9 +73,10 @@ flowchart LR
 
 **Лимиты.** `GoUsageService` читает ключ через `CredentialStore`, выполняет
 запрос с прокси из `ProxyProvider` и возвращает `UsageSnapshot` (три окна
-`rolling` / `weekly` / `monthly`). `AppState` выбирает окно для иконки через
-`UsageSnapshot.meter(for:)` (`TrayMeter`), а внутреннее кольцо всегда строится
-из `rolling` через `UsageMeter.rollingWindowFraction(now:)`.
+`rolling` / `weekly` / `monthly`). `AppState` выбирает через
+`UsageSnapshot.meter(for:)` (`TrayMeter`) окно, чья цифра процента выводится в
+иконке. Единственное кольцо иконки — зелёный отсчёт до сброса 5-часового лимита;
+оно всегда строится из `rolling` через `UsageMeter.rollingWindowFraction(now:)`.
 
 **Активность.** `ActivityService.load(days:)` сначала вызывает
 `LocalAPIService.fetch` (API-first). При любом сбое — отсутствующий CLI, нет
