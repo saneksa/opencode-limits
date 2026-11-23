@@ -162,10 +162,14 @@ macOS засыпает по отсутствию пользовательско�
 ## 8. Текущее состояние
 
 - Репозиторий: `https://github.com/saneksa/opencode-limits.git`, ветка `main`.
-- CI: `.github/workflows/build.yml` на `macos-latest`, последний прогон — `success`
-  (все 9 шагов), артефакт `OpenCodeLimits-macos-<sha>` (~361 КБ).
+- CI: `.github/workflows/build.yml` на `macos-latest`, последний прогон `0a5a1f0` —
+  `success` (все 9 шагов), артефакт `OpenCodeLimits-macos-<sha>` (~718 КБ,
+  вырос после добавления `AppIcon.icns`).
 - `make test` — **178 passed, 0 failed**; `make smoke` — **182 passed, 0 failed**.
-- `.app` — 1.4 МБ, Mach-O arm64, ad-hoc подпись, `LSUIElement = true`.
+- `.app` — 1.4 МБ, Mach-O arm64, ad-hoc подпись, `LSUIElement = true`,
+  `Contents/Resources/AppIcon.icns` (песочные часы, 10 размеров).
+- Иконка в трее — одно зелёное кольцо (откат 5-часового окна) + цифра процента
+  выбранного лимита; внутреннего кольца нет.
 - Секретов в репозитории нет: ключи, пароли и БД лежат вне проекта.
 
 См. также: [Архитектура](architecture.md), [Источники данных](data-sources.md),
