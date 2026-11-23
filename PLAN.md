@@ -360,7 +360,10 @@ GitHub Actions (`macos-latest`) компилятор закономерно от
 - [x] **Чистая сборка** (`swift package clean` → `swift build -c release`) — Build complete,
       `make test` — 179 passed, `make app` — `plutil OK` / `codesign valid`
 - [x] В workflow добавлена проверка? Нет — на CI всегда чистый checkout, переименования достаточно
-- [ ] Повторный прогон Actions после пуша фикса
+- [x] **Повторный прогон Actions `902184a` — `conclusion=success`**: все 9 шагов
+      (Checkout, Toolchain, Run tests, Build .app, Verify bundle, Package ZIP,
+      Upload app archive) зелёные; артефакт `OpenCodeLimits-macos-<sha>` загружен.
+      https://github.com/saneksa/opencode-limits/actions/runs/45187208769
 
 ### Привязка репозитория
 
