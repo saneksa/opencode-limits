@@ -57,7 +57,7 @@
 
 ## Окно настроек
 
-`SettingsWindowController` создаёт `NSWindow` размером **480×640**, `styleMask = [.titled, .closable, .miniaturizable, .resizable]`, `minSize = 440×420`, `maxSize = 760×1100`, `isReleasedWhenClosed = false`. Содержимое — `ScrollView { Form { … } }`; все восемь описательных подписей используют `.fixedSize(horizontal: false, vertical: true)`, поэтому длинный русский текст переносится, а не обрезается многоточием.
+`SettingsWindowController` создаёт окно **явно** через `NSWindow(contentRect: 600×700, …)`, задаёт `NSHostingController.preferredContentSize`, `minSize = 520×460`, `maxSize = 900×1100`, `isReleasedWhenClosed = false`. Вёрстка — `ScrollView(.vertical) { VStack { … } }` **без `Form`**: macOS `Form` имеет собственную минимальную ширину и обрезался по бокам даже при 480 pt. Каждая строка использует фиксированную колонку подписей 170 pt, а элементы занимают остаток; все описательные подписи используют `.fixedSize(horizontal: false, vertical: true)` и переносятся, а не обрезаются многоточием.
 
 Разделы формы:
 

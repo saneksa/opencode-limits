@@ -21,12 +21,21 @@ final class SettingsWindowController {
             .environmentObject(state)
             .environmentObject(state.settings)
         let controller = NSHostingController(rootView: rootView)
-        let window = NSWindow(contentViewController: controller)
+        controller.preferredContentSize = NSSize(width: 600, height: 700)
+
+        // Create the window explicitly: NSWindow(contentViewController:) adopts
+        // the hosting controller's fitting size, which is wider than the screen
+        // layout and clips long labels.
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 700),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
         window.title = "Настройки — OpenCode Go"
-        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
-        window.setContentSize(NSSize(width: 480, height: 640))
-        window.minSize = NSSize(width: 440, height: 420)
-        window.maxSize = NSSize(width: 760, height: 1100)
+        window.contentViewController = controller
+        window.minSize = NSSize(width: 520, height: 460)
+        window.maxSize = NSSize(width: 900, height: 1100)
         window.isReleasedWhenClosed = false
         window.center()
         self.window = window
@@ -50,6 +59,8 @@ struct SettingsView: View {
     @EnvironmentObject private var state: AppState
     @StateObject private var local = SettingsLocalState()
 
+    private let labelColumnWidth: CGFloat = 170
+
     /// The normal poll interval can be 30 s, so a plain `/60` would render
     /// "раз в 0 мин". Show seconds below a minute.
     private var powerCaption: String {
@@ -61,61 +72,81 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            Form {
-                Section("Обновление") {
-                    Picker("Интервал опроса", selection: $settings.pollInterval) {
+        ScrollView(.vertical) {
+            VStack(alignment: .leading, spacing: 16) {
+                sectionHeader("Обновление")
+
+                settingRow("Интервал опроса") {
+                    Picker("", selection: $settings.pollInterval) {
                         Text("30 сек").tag(30.0)
                         Text("1 мин").tag(60.0)
                         Text("5 мин").tag(300.0)
                     }
-                    Picker("В строке меню", selection: $settings.trayMeterRaw) {
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                settingRow("В строке меню") {
+                    Picker("", selection: $settings.trayMeterRaw) {
                         ForEach(TrayMeter.allCases) { item in
                             Text(item.title).tag(item.rawValue)
                         }
                     }
-                    Text("Влияет только на иконку в строке меню. В окне и в уведомлениях всегда видны все три лимита.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Кольцо показывает время до сброса 5-часового окна, цифра — выбранный лимит.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Stepper(value: $settings.warnThreshold, in: 0...100, step: 5) {
-                        Text("Предупреждать при \(settings.warnThreshold)%")
-                    }
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Section("Энергосбережение") {
-                    Toggle("Уменьшать опрос от батареи", isOn: $settings.powerSavingEnabled)
-                    Picker("Интервал от батареи", selection: $settings.batteryPollInterval) {
+                fullWidthCaption("Влияет только на иконку в строке меню. В окне и в уведомлениях всегда видны все три лимита.")
+                fullWidthCaption("Кольцо показывает время до сброса 5-часового окна, цифра — выбранный лимит.")
+
+                settingRow("Предупреждать при \(settings.warnThreshold)%") {
+                    Stepper("", value: $settings.warnThreshold, in: 0...100, step: 5)
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                sectionHeader("Энергосбережение")
+
+                settingRow("Уменьшать опрос от батареи") {
+                    Toggle("", isOn: $settings.powerSavingEnabled)
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                settingRow("Интервал от батареи") {
+                    Picker("", selection: $settings.batteryPollInterval) {
                         Text("1 мин").tag(60.0)
                         Text("5 мин").tag(300.0)
                         Text("15 мин").tag(900.0)
                     }
-                    Text(powerCaption)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Low Power Mode и работа от батареи также реже обновляют кольцо и историю активности. Во сне таймеры приложения приостанавливаются.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Section("Ключ доступа Go") {
-                    Picker("Источник", selection: $settings.keySourceRaw) {
+                fullWidthCaption(powerCaption)
+                fullWidthCaption("Low Power Mode и работа от батареи также реже обновляют кольцо и историю активности. Во сне таймеры приложения приостанавливаются.")
+
+                sectionHeader("Ключ доступа Go")
+
+                settingRow("Источник") {
+                    Picker("", selection: $settings.keySourceRaw) {
                         ForEach(KeySource.allCases) { source in
                             Text(source.rawValue).tag(source.rawValue)
                         }
                     }
-                    Text("Активный источник: \(state.credentialStore.activeSourceDescription)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    SecureField("Новый ключ", text: $local.manualKey)
-                    HStack {
+                    .labelsHidden()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                fullWidthCaption("Активный источник: \(state.credentialStore.activeSourceDescription)")
+
+                settingRow("Новый ключ") {
+                    SecureField("", text: $local.manualKey)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                fullWidthRow {
+                    HStack(spacing: 12) {
                         Button("Сохранить в Keychain") {
                             saveKey()
                         }
@@ -128,40 +159,85 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Соединение") {
+                sectionHeader("Соединение")
+
+                fullWidthRow {
                     Button("Проверить соединение") {
                         testConnection()
                     }
                     .disabled(local.isTesting)
-                    if let message = local.connectionMessage {
-                        Text(message)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                }
+                if let message = local.connectionMessage {
+                    fullWidthCaption(message)
                 }
 
-                Section("Запуск") {
-                    Toggle("Запускать при входе в систему", isOn: $settings.launchAtLogin)
-                    if let error = settings.launchAtLoginError {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+                sectionHeader("Запуск")
+
+                settingRow("Запускать при входе в систему") {
+                    Toggle("", isOn: $settings.launchAtLogin)
+                        .labelsHidden()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                if let error = settings.launchAtLoginError {
+                    fullWidthCaption(error, color: .orange)
                 }
 
-                Section("Конфиденциальность") {
-                    Text("ключ не логируется, БД только для чтения, содержимое переписки не читается")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                sectionHeader("Конфиденциальность")
+
+                fullWidthCaption("ключ не логируется, БД только для чтения, содержимое переписки не читается")
             }
-            .frame(maxWidth: .infinity)
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(minWidth: 440, minHeight: 560)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+
+    // MARK: - Layout helpers
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.headline)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func settingRow<Content: View>(
+        _ label: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .font(.body)
+                .frame(width: labelColumnWidth, alignment: .trailing)
+                .fixedSize(horizontal: false, vertical: true)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func fullWidthRow<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Spacer(minLength: 0).frame(width: labelColumnWidth)
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func fullWidthCaption(_ text: String, color: Color = .secondary) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Spacer(minLength: 0).frame(width: labelColumnWidth)
+            Text(text)
+                .font(.caption)
+                .foregroundStyle(color)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Actions
 
     private func saveKey() {
         let key = local.manualKey.trimmingCharacters(in: .whitespacesAndNewlines)
