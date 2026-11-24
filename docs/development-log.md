@@ -225,11 +225,33 @@ macOS засыпает по отсутствию пользовательско�
 - **«Подключение»** — источник ключа, активный источник, `SecureField`, кнопки Keychain и «Проверить соединение»; отдельная секция «Соединение» упразднена.
 - **«Энергосбережение»** — экономия от батареи, интервал от батареи, подпись о питании и одна подсказка.
 
-«Конфиденциальность» превратилась в постоянную строку-футер вне `ScrollView`.
-Две дублирующие подписи под «В строке меню» и две подписи в энергосбережении
-объединены в по одной. Новых ключей `UserDefaults` нет: 9 ключей и 5 переменных
-окружения не изменились. Размеры окна 600×700 (520×460 … 900×1100) и отказ от
-`Form` (раунд 14) сохранены. `make test` — 178 passed, `make smoke` — 182.
+«Конфиденциальность» превратилась в постоянную строку-футер внизу окна.
+
+### Раунд 16 — краш при открытии настроек
+
+**Симптом:** приложение падало сразу при открытии окна настроек (после раунда 15).
+Воспроизведено: процесс умирал, `~/Library/Logs/DiagnosticReports/OpenCodeLimits-*.ips`.
+
+**Диагностика:** `EXC_BREAKPOINT (SIGTRAP)` в
+`-[NSApplication _crashOnException:]`, backtrace:
+`NSHostingView.updateWindowContentSizeExtremaIfNecessary` →
+`-[NSWindow _setFrameCommon:display:fromServer:]` → `-[NSView setFrameSize:]` →
+`-[NSScrollView didChangeValueForKey:]` → `NSException` в
+`-[NSWindow(NSDisplayCycle) _postWindowNeedsLayout]`. То есть вложенный SwiftUI
+`ScrollView` при **явно созданном** `NSWindow(contentRect:)` заставлял
+`NSHostingView` пересчитывать минимальный/максимальный размер окна во время
+display cycle, что вызывало KVO-конфликт у `NSScrollView`. В раунде 14
+`ScrollView` был корневым и работал; в раунде 15 он оказался вложен в `VStack`
+с `.frame(maxHeight: .infinity)` — это и стало триггером.
+
+- [x] `ScrollView` удалён полностью: `VStack` вкладки с
+      `.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)`
+      компактно помещается в 600×700; футер остаётся постоянным
+- [x] Повторное воспроизведение: процесс **жив**, окно 600×728, краш-репортов нет
+- [x] `swift build -c release` — Build complete, `make test` — 178 passed,
+      `make app` — подпись валидна
+- [x] `docs/ui.md`, `docs/troubleshooting.md`, корневой `README.md`,
+      `docs/README.md` обновлены; раунд 15 в истории не переписывался
 
 ## 8. Текущее состояние
 

@@ -87,20 +87,22 @@ struct SettingsView: View {
 
             Divider()
 
-            ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 16) {
-                    if local.tab == 0 {
-                        generalTab
-                    } else if local.tab == 1 {
-                        connectionTab
-                    } else {
-                        energyTab
-                    }
+            // No ScrollView: with an explicitly-sized NSWindow, a nested
+            // SwiftUI ScrollView makes NSHostingView recompute the window's
+            // content-size extrema during the display cycle, which triggers
+            // an NSScrollView KVO exception and crashes the app. Each tab is
+            // short enough to fit the 600x700 window without scrolling.
+            VStack(alignment: .leading, spacing: 16) {
+                if local.tab == 0 {
+                    generalTab
+                } else if local.tab == 1 {
+                    connectionTab
+                } else {
+                    energyTab
                 }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
             Divider()
 
