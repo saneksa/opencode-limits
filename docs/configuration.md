@@ -67,10 +67,16 @@
 `ProxyProvider` читает системные настройки через
 `SCDynamicStoreCopyProxies` (`kSCPropNetProxiesHTTPSEnable`, `HTTPSProxy`,
 `HTTPSPort`) и переносит их в `URLSessionConfiguration.connectionProxyDictionary`
-(`kCFNetworkProxiesHTTPSEnable` = 1, `HTTPSProxy`, `HTTPSPort`). На этой машине
-прокси задан через `scutil --proxy` (`127.0.0.1:1082`) и **отсутствует** в
-переменных окружения — поэтому одного чтения `HTTPS_PROXY` недостаточно.
-Таймаут запроса — 15 с.
+(`kCFNetworkProxiesHTTPSEnable` = 1, `HTTPSProxy`, `HTTPSPort`). Если системный
+прокси выключен, словарь не задаётся и `URLSession` работает напрямую; при
+необходимости используется fallback `HTTPS_PROXY`. Таймаут запроса — 15 с.
+
+**Важно:** `GoUsageService` создаёт `URLSession` **заново для каждого опроса**
+(инжектированный в тестах session остаётся как есть). Это нужно, чтобы выключение
+или смена прокси во время работы приложения не оставляло сессию с устаревшим
+адресом вроде `127.0.0.1:1082` — иначе все последующие запросы падали бы с
+«Ошибка сети» до перезапуска. Свежая сессия инвалидируется после завершения
+запроса через `finishTasksAndInvalidate()`.
 
 Локальный V2 API настраивает свой `URLSession` иначе:
 `connectionProxyDictionary = [:]`, таймаут 5 с. Запросы к `127.0.0.1` не должны

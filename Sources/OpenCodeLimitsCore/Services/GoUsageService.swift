@@ -5,11 +5,24 @@ import Foundation
 /// never stored, printed or included in an error message.
 public final class GoUsageService: @unchecked Sendable {
     private let keyProvider: () throws -> String
-    private let session: URLSession
+    /// Injected session for tests. When nil, a fresh session is created for
+    /// EVERY request from the current system proxy settings. Otherwise a
+    /// session built while a proxy was enabled keeps pointing at the old
+    /// 127.0.0.1:<port> after the proxy is switched off, and every poll fails
+    /// with "Ошибка сети" until the app is restarted.
+    private let injectedSession: URLSession?
 
     public init(keyProvider: @escaping () throws -> String, session: URLSession? = nil) {
         self.keyProvider = keyProvider
-        self.session = session ?? URLSession(configuration: ProxyProvider.shared.sessionConfiguration())
+        self.injectedSession = session
+    }
+
+    private func makeSession() -> (URLSession, Bool) {
+        if let injectedSession { return (injectedSession, false) }
+        return (
+            URLSession(configuration: ProxyProvider.shared.sessionConfiguration()),
+            true
+        )
     }
 
     public func fetch() async throws -> UsageSnapshot {
@@ -28,6 +41,11 @@ public final class GoUsageService: @unchecked Sendable {
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
         request.setValue(AppConfig.userAgent, forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let (session, shouldInvalidate) = makeSession()
+        defer {
+            if shouldInvalidate { session.finishTasksAndInvalidate() }
+        }
 
         let data: Data
         let response: URLResponse

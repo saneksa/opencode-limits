@@ -231,7 +231,7 @@ public enum UsageError: Error, LocalizedError, Sendable {
         case .noSubscription(let message):
             return "Подписка OpenCode Go отсутствует или не активна: \(message)"
         case .network(let detail):
-            return "Ошибка сети: \(detail)"
+            return "Ошибка сети: \(detail). Проверьте системный HTTPS-прокси и соединение; настройки прокси перечитываются при каждом опросе."
         case .decoding(let detail):
             return "Не удалось разобрать ответ сервера: \(detail)"
         case .database(let detail):

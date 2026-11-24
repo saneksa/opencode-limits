@@ -253,6 +253,32 @@ display cycle, что вызывало KVO-конфликт у `NSScrollView`. �
 - [x] `docs/ui.md`, `docs/troubleshooting.md`, корневой `README.md`,
       `docs/README.md` обновлены; раунд 15 в истории не переписывался
 
+### Раунд 17 — «Ошибка сети» при выключении прокси
+
+**Симптом:** приложение показывало «Ошибка сети», хотя `make smoke` в ту же
+секунду получал живые лимиты (`28 / 63 / 79`).
+
+**Диагностика (24 ноября):**
+- `scutil --proxy`: `HTTPEnable = 0`, `HTTPSEnable = 0` — системный прокси выключен;
+  `lsof -iTCP:1082` — порт никто не слушает.
+- `curl -x 127.0.0.1:1082` → «Couldn't connect to server»; прямой `curl` → тоже
+  не коннектится (особенности curl на этой машине), но `URLSession` напрямую →
+  **HTTP 200**, поэтому новый процесс `make smoke` работал.
+- Запущенное приложение стартовало в 12:55, когда прокси ещё был включён.
+  `GoUsageService.init` **один раз** создавал `URLSession` с
+  `connectionProxyDictionary = 127.0.0.1:1082` и держал его всё время жизни.
+  После отключения прокси все опросы уходили в мёртвый порт.
+
+- [x] `GoUsageService` больше не хранит сессию: `makeSession()` строит новую из
+      свежей `ProxyProvider.sessionConfiguration()` на каждый `fetch()`,
+      инжектированный в тестах session сохраняется, временная сессия
+      инвалидируется через `finishTasksAndInvalidate()`
+- [x] `UsageError.network.errorDescription` дополнен подсказкой про прокси
+- [x] Проверено: `make test` — 178 passed, `make smoke` — 182 passed с живыми
+      лимитами; приложение перезапущено и обновлено в `/Applications`
+- [x] `docs/configuration.md`, `docs/data-sources.md`, `docs/troubleshooting.md`,
+      корневой `README.md`, `docs/README.md` обновлены
+
 ## 8. Текущее состояние
 
 - Репозиторий: `https://github.com/saneksa/opencode-limits.git`, ветка `main`.
